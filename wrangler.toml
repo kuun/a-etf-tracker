@@ -1,0 +1,17 @@
+name = "a-etf-tracker"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# 北京时间 9:30-15:00 = UTC 01:30-07:00，周一到周五，每 2 分钟
+[triggers]
+# 第二条：北京时间 08:30 / 20:30 增量更新日度净值溢价
+crons = ["*/2 1-7 * * 1-5", "30 0,12 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "etf-premium"
+database_id = "f364ae16-3f4b-431f-a8fb-0488ed1a6354"

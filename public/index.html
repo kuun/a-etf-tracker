@@ -1,0 +1,98 @@
+<!doctype html><html lang="zh-CN" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>纳指·标普 ETF 溢价率看板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--fg:#1d2129;--mut:#86909c;--line:#e5e6eb;--hov:#f2f3f5;--acc:#3b6cf6;--up:#e8423f;--dn:#16a35b}
+[data-theme=dark]{--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--mut:#7d8590;--line:#262c36;--hov:#1c2230;--acc:#5b8cff;--up:#ff5d5a;--dn:#2fbf71}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1200px;margin:auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}h1{font-size:22px;margin:0;flex:1}h1 small{font-size:13px;color:var(--mut);font-weight:400;margin-left:8px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}.btn:hover{border-color:var(--acc)}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}.card .k{color:var(--mut);font-size:12px}.card .v{font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}.card .s{font-size:12px;color:var(--mut)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.tabs{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tabs button{border:0;background:none;color:var(--mut);padding:6px 16px;border-radius:7px;cursor:pointer;font-size:13px}.tabs button.on{background:var(--acc);color:#fff}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}th{font-size:12px;color:var(--mut);font-weight:500;cursor:pointer;user-select:none;background:var(--card);position:sticky;top:0}
+th.l,td.l{text-align:left}th.on{color:var(--acc)}tbody tr{cursor:pointer}tbody tr:hover{background:var(--hov)}tr:last-child td{border:0}
+.nm{font-weight:600}.cd{color:var(--mut);font-size:12px}.tag{font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);color:var(--mut)}
+.up{color:var(--up)}.dn{color:var(--dn)}.pill{display:inline-block;min-width:72px;text-align:center;font-weight:700;border-radius:6px;padding:3px 8px}
+.spark{width:110px;height:30px}
+.note{color:var(--mut);font-size:12px;margin-top:14px;line-height:1.8}
+#cmp{height:360px}.sec{margin-top:18px}.sec h3{font-size:15px;margin:0 0 8px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9;padding:12px}.modal.on{display:flex}
+.box{background:var(--card);border-radius:14px;width:min(960px,100%);max-height:94vh;overflow:auto;padding:18px}
+.box .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.box h2{margin:0;font-size:18px;flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.stats div{background:var(--hov);border-radius:8px;padding:8px 10px}.stats b{display:block;font-size:16px}.stats span{font-size:12px;color:var(--mut)}
+.ch{height:300px}
+@media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}.cards .card:first-child{grid-column:span 2}.card .v{font-size:20px}
+ .hide-m{display:none}th,td{padding:9px 8px}.spark{width:70px}h1{font-size:18px}.stats{grid-template-columns:repeat(2,1fr)}.ch{height:240px}#cmp{height:300px}}
+</style></head><body><div class="wrap">
+<header><h1>纳指 · 标普 ETF 溢价率<small>A股场内 QDII</small></h1>
+<button class="btn" id="theme">☀️ 浅色</button><button class="btn" onclick="load()">⟳ 刷新</button></header>
+<div class="cards" id="cards"></div>
+<div class="bar"><div class="tabs" id="tabs"><button data-g="" class="on">全部</button><button data-g="纳指">纳指</button><button data-g="标普">标普</button></div>
+<span class="cd" id="cnt"></span></div>
+<div class="panel"><table><thead><tr id="hd"></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="sec panel" style="padding:14px"><div class="bar" style="justify-content:space-between"><h3>溢价率对比（日度：收盘价/当日净值−1）</h3><div class="tabs" id="cmpR"></div></div><div id="cmp"></div></div>
+<div class="note">实时溢价率 = 现价 / IOPV − 1（无 IOPV 时用最新公布净值，标注 NAV）。历史日度溢价 = 当日收盘价 / 同一估值日 T 的官方单位净值 − 1；QDII 净值 T 日对应当晚美股收盘，通常 T+1~T+2 公布，故最近 1–2 天暂无日度数据。<br>数据来源：东方财富、新浪财经。仅供参考，不构成投资建议。</div>
+</div>
+<div class="modal" id="modal" onclick="if(event.target==this)closeM()"><div class="box">
+<div class="hd"><h2 id="mt"></h2><div class="tabs" id="rng"></div><button class="btn" onclick="closeM()">✕</button></div>
+<div class="stats" id="mstats"></div><div id="c1" class="ch"></div><div id="c2" class="ch"></div></div></div>
+<script>
+const $=s=>document.querySelector(s),pct=(v,d=2)=>v==null?'—':(v>0?'+':'')+(v*100).toFixed(d)+'%';
+const RANGES=[['1M',30],['3M',91],['6M',182],['1Y',365],['3Y',1095],['全部',0]];
+let rows=[],spark={},grp='',sk='premium',sd=-1,daily={},cmpR=365,cur=null,curR=182,charts={};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function heat(p){if(p==null)return'';const a=Math.min(Math.abs(p)/.15,1),c=p>=0?'232,66,63':'22,163,91';return`background:rgba(${c},${.12+.55*a});color:${a>.55?'#fff':'inherit'}`}
+const COLS=[['code','代码 / 名称','l'],['index','指数','l hide-m'],['price','现价'],['change','涨跌'],['amount','成交额','hide-m'],['iopv','参考净值','hide-m'],['spark','近60日溢价','hide-m'],['premium','溢价率']];
+function head(){$('#hd').innerHTML=COLS.map(([k,t,c=''])=>`<th class="${c} ${k==sk?'on':''}" data-k="${k}">${t}${k==sk?(sd<0?' ↓':' ↑'):''}</th>`).join('')}
+$('#hd').onclick=e=>{const k=e.target.dataset.k;if(!k||k=='spark')return;if(sk==k)sd=-sd;else{sk=k;sd=-1}render()};
+$('#tabs').onclick=e=>{if(e.target.dataset.g==null)return;grp=e.target.dataset.g;[...$('#tabs').children].forEach(b=>b.classList.toggle('on',b==e.target));render()};
+function render(){head();const list=rows.filter(r=>!grp||r.index==grp).sort((a,b)=>{const x=sk=='code'?a.code:a[sk],y=sk=='code'?b.code:b[sk];return(x>y?1:x<y?-1:0)*sd});
+ $('#cnt').textContent=`共 ${list.length} 只`;
+ $('#tb').innerHTML=list.map(r=>`<tr onclick="openM('${r.code}')"><td class="l"><div class="nm">${r.name}</div><div class="cd">${r.code} <span class="tag">${r.basis||''}</span></div></td>
+ <td class="l hide-m">${r.index}</td><td>${r.price?.toFixed(3)??'—'}</td><td class="${r.change>0?'up':r.change<0?'dn':''}">${pct(r.change)}</td>
+ <td class="hide-m">${r.amount?(r.amount/1e8).toFixed(2)+' 亿':'—'}</td><td class="hide-m">${(r.basis=='NAV'?r.nav:r.iopv)?.toFixed(4)??'—'}</td>
+ <td class="hide-m"><svg class="spark" viewBox="0 0 110 30" preserveAspectRatio="none">${sparkSvg(spark[r.code])}</svg></td>
+ <td><span class="pill" style="${heat(r.premium)}">${pct(r.premium)}</span></td></tr>`).join('')}
+function sparkSvg(s){if(!s||s.length<2)return'';const v=s.map(x=>x[1]),mn=Math.min(...v,0),mx=Math.max(...v,0),h=mx-mn||1;
+ const pt=v.map((y,i)=>`${(i/(v.length-1)*108+1).toFixed(1)},${(28-(y-mn)/h*26).toFixed(1)}`).join(' '),z=28-(0-mn)/h*26,c=v.at(-1)>=0?css('--up'):css('--dn');
+ return`<line x1="0" x2="110" y1="${z}" y2="${z}" stroke="${css('--line')}" stroke-dasharray="2 2"/><polyline fill="none" stroke="${c}" stroke-width="1.5" points="${pt}"/>`}
+function cards(){const avg=g=>{const a=rows.filter(r=>r.index==g&&r.premium!=null);return a.reduce((s,r)=>s+r.premium,0)/a.length};
+ const s=rows.filter(r=>r.premium!=null).sort((a,b)=>b.premium-a.premium),hi=s[0],lo=s.at(-1);
+ const C=(k,v,sub,p)=>`<div class="card"><div class="k">${k}</div><div class="v" style="color:${p==null?'inherit':p>=0?css('--up'):css('--dn')}">${v}</div><div class="s">${sub}</div></div>`;
+ $('#cards').innerHTML=C('纳指 ETF 平均溢价',pct(avg('纳指')),`${rows.filter(r=>r.index=='纳指').length} 只`,avg('纳指'))+C('标普 ETF 平均溢价',pct(avg('标普')),`${rows.filter(r=>r.index=='标普').length} 只`,avg('标普'))
+  +C('最高溢价',pct(hi.premium),`${hi.name} ${hi.code}`,hi.premium)+C('最低溢价',pct(lo.premium),`${lo.name} ${lo.code}`,lo.premium)
+  +C('更新时间（北京）',new Date(window._upd).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}),new Date(window._upd).toLocaleDateString('zh-CN',{timeZone:'Asia/Shanghai'})+' · 60秒自动刷新')}
+const ago=d=>d?new Date(Date.now()-d*864e5).toISOString().slice(0,10):'1900-01-01';
+async function load(){const[l,s]=await Promise.all([fetch('/api/latest').then(r=>r.json()),fetch('/api/daily?code=all&from='+ago(90)).then(r=>r.json())]);
+ rows=l.rows;window._upd=l.updated;spark={};for(const k in s.series)spark[k]=s.series[k].slice(-60);cards();render()}
+function mk(id){charts[id]?.dispose();return charts[id]=echarts.init(document.getElementById(id),document.documentElement.dataset.theme=='dark'?'dark':null,{renderer:'canvas'})}
+const base=()=>({animation:false,backgroundColor:'transparent',grid:{left:50,right:20,top:40,bottom:60},tooltip:{trigger:'axis'},dataZoom:[{type:'inside'},{type:'slider',height:18,bottom:8}]});
+async function cmp(){const s=await fetch('/api/daily?code=all&from='+ago(cmpR)).then(r=>r.json());const nm=Object.fromEntries(rows.map(r=>[r.code,r.name]));
+ const c=mk('cmp');c.setOption({...base(),legend:{type:'scroll',top:0},yAxis:{type:'value',axisLabel:{formatter:v=>(v*100).toFixed(0)+'%'}},xAxis:{type:'time'},
+ tooltip:{trigger:'axis',valueFormatter:v=>pct(v)},series:Object.entries(s.series).map(([k,v])=>({name:nm[k]||k,type:'line',showSymbol:false,data:v,lineStyle:{width:1.3}}))})}
+function tabs(el,cur,fn){el.innerHTML=RANGES.map(([t,d])=>`<button data-d="${d}" class="${d==cur?'on':''}">${t}</button>`).join('');el.onclick=e=>{const d=e.target.dataset.d;if(d==null)return;[...el.children].forEach(b=>b.classList.toggle('on',b==e.target));fn(+d)}}
+tabs($('#cmpR'),cmpR,d=>{cmpR=d;cmp()});
+async function openM(code){cur=rows.find(r=>r.code==code);$('#modal').classList.add('on');$('#mt').innerHTML=`${cur.name} <span class="cd">${code} · ${cur.index}</span>`;
+ tabs($('#rng'),curR,d=>{curR=d;drawM()});daily[code]??=(await fetch('/api/daily?code='+code).then(r=>r.json())).rows;drawM()}
+function closeM(){$('#modal').classList.remove('on')}
+function drawM(){const all=daily[cur.code],f=ago(curR),d=all.filter(r=>r.date>=f),p=d.map(r=>r.premium),av=p.reduce((a,b)=>a+b,0)/p.length;
+ $('#mstats').innerHTML=[['实时溢价',pct(cur.premium)],['区间均值',pct(av)],['区间最高',pct(Math.max(...p))],['区间最低',pct(Math.min(...p))]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('')
+  +`<div style="grid-column:1/-1"><span>历史数据 ${all[0]?.date} ~ ${all.at(-1)?.date}，共 ${all.length} 个交易日</span></div>`;
+ mk('c1').setOption({...base(),title:{text:'日度溢价率',textStyle:{fontSize:13}},xAxis:{type:'category',data:d.map(r=>r.date)},yAxis:{type:'value',axisLabel:{formatter:v=>(v*100).toFixed(0)+'%'}},
+  tooltip:{trigger:'axis',valueFormatter:v=>pct(v)},
+  series:[{type:'line',name:'溢价率',color:css('--up'),data:p,showSymbol:false,areaStyle:{opacity:.15},markLine:{symbol:'none',data:[{yAxis:0}],lineStyle:{color:'#888'},label:{show:false}}}]});
+ mk('c2').setOption({...base(),title:{text:'收盘价 vs 单位净值',textStyle:{fontSize:13}},legend:{top:0,right:10},xAxis:{type:'category',data:d.map(r=>r.date)},yAxis:{type:'value',scale:true},
+  series:[{type:'line',name:'收盘价',data:d.map(r=>r.close),showSymbol:false,color:'#f0a020'},{type:'line',name:'单位净值',data:d.map(r=>r.nav),showSymbol:false,color:css('--acc')}]})}
+const th=$('#theme');function setT(t){document.documentElement.dataset.theme=t;th.textContent=t=='dark'?'☀️ 浅色':'🌙 深色';localStorage.theme=t;}
+setT(localStorage.theme||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
+th.onclick=()=>{setT(document.documentElement.dataset.theme=='dark'?'light':'dark');render();cmp();if($('#modal').classList.contains('on'))drawM()};
+addEventListener('resize',()=>Object.values(charts).forEach(c=>c.resize()));
+load().then(cmp);setInterval(load,60000);
+if(location.hash.length>1)setTimeout(()=>openM(location.hash.slice(1)),1500);
+</script></body></html>
