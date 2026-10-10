@@ -8,11 +8,15 @@ await Promise.all([0, 1, 2].map(async w => {
   for (let i = w; i < ETFS.length; i += 3) {
     const [code, mk] = ETFS[i];
     const [kl, nav] = await Promise.all([fetchKline(code, mk), fetchNav(code)]);
-    const rows = join(code, kl, nav); all.push(...rows);
+    const rows = join(code, kl, nav);
+    if (!rows.length || rows.length < Math.min(Object.keys(kl).length, Object.keys(nav).length) * .6)
+      throw new Error(`${code}: historical data coverage is incomplete`);
+    all.push(...rows);
     stat.push({ code, kline: Object.keys(kl).length, nav: Object.keys(nav).length, joined: rows.length, from: rows[0]?.date, to: rows.at(-1)?.date });
     console.error(code, rows.length, rows[0]?.date, rows.at(-1)?.date);
   }
 }));
+if (stat.length !== ETFS.length) throw new Error('Not all ETFs were backfilled');
 console.table(stat.sort((a, b) => a.code.localeCompare(b.code)));
 writeFileSync("data/daily.json", JSON.stringify(all));
 const sql = [];

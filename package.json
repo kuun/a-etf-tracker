@@ -1,1 +1,1 @@
-{"name": "a-etf-tracker","private":true,"type":"module","scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^3.114.17"}}
+{"name": "a-etf-tracker","private":true,"type":"module","scripts":{"dev":"wrangler dev","test":"node --test","db:migrate":"node --env-file=.env scripts/deploy.mjs --migrate","deploy":"node --env-file=.env scripts/deploy.mjs","logs:quotes":"node --env-file=.env scripts/quote-logs.mjs"},"devDependencies":{"wrangler":"^3.114.17"}}
